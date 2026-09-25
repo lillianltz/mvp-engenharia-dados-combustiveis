@@ -382,8 +382,8 @@ mvp_engenharia_dados/
 │   └── 06_analise_choque_geopolitico_resultados.ipynb
 │
 └── imagens/
-    ├── catalogo_bronze_gold.png
-    └── catalogo_raw_silver.png
+    ├── catalog_bronze.png
+    └── catalog_gold_silver_raw.png
 ```
 
 Os notebooks seguem a ordem de execução do pipeline, desde a preparação do ambiente e ingestão das fontes até a criação das tabelas analíticas e interpretação dos resultados.  
