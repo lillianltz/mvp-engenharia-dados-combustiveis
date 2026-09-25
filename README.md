@@ -356,20 +356,18 @@ Como aprendizado, o projeto reforçou a importância de definir claramente a gra
 
 ## 9. Estrutura do Repositório
 
-O repositório está organizado para separar os notebooks utilizados no pipeline e as imagens empregadas na documentação.
-
 ```text
 mvp_engenharia_dados/
 │
 ├── README.md
 ├── notebooks/
-│   ├── 00 - Setup
-│   ├── 01 - Ingestão Brent
-│   ├── 02 - Ingestão PPI
-│   ├── 03 - Ingestão ANP
-│   ├── 04 - Profiling e Qualidade
-│   ├── 05 - Modelagem Gold
-│   └── 06 - Análise do Choque Geopolítico e Resultados
+│   ├── 00_setup.ipynb
+│   ├── 01_ingestao_brent.ipynb
+│   ├── 02_ingestao_ppi.ipynb
+│   ├── 03_ingestao_precos_anp.ipynb
+│   ├── 04_profiling_qualidade_bronze.ipynb
+│   ├── 05_modelagem_gold.ipynb
+│   └── 06_analise_choque_geopolitico_resultados.ipynb
 │
 └── imagens/
     ├── catalogo_bronze_gold.png
