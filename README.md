@@ -534,6 +534,10 @@ O maior valor médio semanal observado no período posterior foi de aproximadame
 
 O resultado evidencia uma mudança expressiva no nível de preços internacionais após a escalada do conflito.
 
+![Evolução semanal do preço médio do Brent antes e depois da data de referência](imagens/analise_brent_evolucao.png)
+
+![Comparação do Brent entre os períodos pré e pós-choque](imagens/analise_brent_pre_pos.png)
+
 ### 6.2 Comportamento do PPI
 
 Os preços de paridade de importação também apresentaram aumento na comparação entre as 12 semanas anteriores e as 12 semanas posteriores à data de referência.
@@ -543,6 +547,8 @@ Para o **diesel**, a média passou de aproximadamente **3,26 para 5,64**, uma va
 Para a **gasolina**, a média passou de aproximadamente **2,42 para 3,98**, uma variação de **64,22%**.
 
 Nesse recorte específico, portanto, o aumento percentual do PPI foi maior para o diesel.
+
+![Comparação do PPI de gasolina e diesel nos períodos pré e pós-choque](imagens/analise_ppi_pre_pos.png)
 
 ### 6.3 Preços ao consumidor
 
@@ -554,6 +560,8 @@ A **gasolina** apresentou aumento médio de aproximadamente **6,32%**, passando 
 
 A diferença de magnitude entre as etapas indica que as oscilações internacionais não foram reproduzidas de maneira imediata e proporcional nos preços ao consumidor.
 
+![Comparação dos preços ao consumidor nos períodos pré e pós-choque](imagens/analise_anp_pre_pos.png)
+
 ### 6.4 Sensibilidade de gasolina e diesel
 
 A comparação entre gasolina e diesel depende da etapa da cadeia e da janela analisada.
@@ -563,6 +571,8 @@ No choque de 2026, o diesel apresentou maior variação percentual tanto no PPI 
 Na análise histórica entre Brent e PPI, entretanto, a correlação contemporânea foi maior para a gasolina (**0,690**) do que para o diesel (**0,588**).
 
 Esses resultados mostram que a ideia de "maior sensibilidade" depende da métrica considerada. O comportamento durante o evento específico e a associação histórica entre as séries representam perspectivas diferentes do problema.
+
+![Síntese da análise de sensibilidade da gasolina e do diesel](imagens/analise_sensibilidade.png)
 
 ### 6.5 Defasagens temporais
 
@@ -579,6 +589,8 @@ Na comparação entre **Brent e preços ao consumidor**, a correlação também 
 - Gasolina: aproximadamente **0,408**.
 
 Os resultados sugerem que, na janela analisada, as alterações das referências internacionais apresentaram associação mais forte com os preços ao consumidor quando considerada aproximadamente uma semana de defasagem. Essa evidência deve ser interpretada como associação temporal, e não como demonstração de causalidade.
+
+![Resultados da análise de correlação com defasagem temporal](imagens/analise_defasagem.png)
 
 ### 6.6 Diferenças regionais
 
@@ -603,6 +615,8 @@ Para a **gasolina**, foram:
 Também foram observadas diferenças relevantes entre as unidades da federação. No Diesel S10, as variações ficaram entre aproximadamente **7,87% no Acre e 27,26% na Bahia**. Na gasolina, ficaram entre aproximadamente **1,09% no Distrito Federal e 12,85% na Bahia**.
 
 Um exemplo da heterogeneidade entre combustíveis aparece no Distrito Federal: o Diesel S10 apresentou aumento de aproximadamente **20,73%**, enquanto a gasolina apresentou aumento de aproximadamente **1,09%**.
+
+![Variação dos preços ao consumidor por região antes e depois da data de referência](imagens/analise_regioes.png)
 
 ### 6.7 Síntese dos resultados
 
