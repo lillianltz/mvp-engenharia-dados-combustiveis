@@ -142,7 +142,19 @@ workspace
 
 Essa organização possibilita acompanhar a evolução dos dados ao longo do pipeline e manter separadas as tabelas de ingestão, tratamento e análise.
 
-### 3.2 Tabelas Silver
+### 3.2 Organização no Unity Catalog
+
+A organização das camadas implementadas no Databricks pode ser observada no Unity Catalog:
+
+**Camada Bronze:**
+
+![Tabelas da camada Bronze no Unity Catalog](imagens/catalog_bronze.png)
+
+**Camadas Raw, Silver e Gold:**
+
+![Camadas Raw, Silver e Gold no Unity Catalog](imagens/catalog_gold_silver_raw.png)
+
+### 3.3 Tabelas Silver
 
 Na camada Silver foram consolidadas três tabelas principais:
 
@@ -154,7 +166,7 @@ No tratamento do PPI, os dados originalmente distribuídos em diferentes colunas
 
 Nos dados de preços ao consumidor, o valor de venda foi convertido para formato numérico e as duplicidades exatas da fonte foram removidas.
 
-### 3.3 Tabelas Gold
+### 3.4 Tabelas Gold
 
 A camada Gold concentra os dados preparados para as análises do projeto.
 
