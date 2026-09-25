@@ -101,20 +101,22 @@ Os arquivos de origem foram organizados no Volume seguindo a estrutura:
 └── anp_precos/
 
 
-## 3. Modelagem e Catálogo
+## 3. Modelagem e Catálogo de Dados
 
-A organização dos dados foi estruturada no Databricks utilizando o Unity Catalog e uma arquitetura em camadas Raw, Bronze, Silver e Gold. A separação das camadas permite distinguir os arquivos originais, os dados ingeridos, os dados tratados e os conjuntos preparados especificamente para análise.
+A modelagem foi desenvolvida no Databricks utilizando o Unity Catalog e uma arquitetura em camadas Raw, Bronze, Silver e Gold. Essa organização permite acompanhar a evolução dos dados desde os arquivos originais até as estruturas utilizadas nas análises.
 
-### 3.1 Arquitetura de dados
+### 3.1 Modelo adotado
 
-A arquitetura adotada foi organizada da seguinte forma:
+O projeto utiliza uma modelagem analítica por conceito, próxima ao modelo flat, dentro de uma arquitetura Lakehouse. Não foi adotado um esquema dimensional estrela ou snowflake, pois o objetivo principal do MVP é integrar séries temporais provenientes de três fontes distintas e produzir estruturas analíticas semanais para comparação entre Brent, PPI e preços ao consumidor.
 
-- **Raw:** armazenamento dos arquivos originais no Databricks Volume, separados por fonte.
-- **Bronze:** persistência dos dados ingeridos, com mínima transformação e preservação das informações provenientes das fontes.
-- **Silver:** tratamento, padronização, conversão de tipos, remoção de duplicidades e reorganização dos dados para análise.
-- **Gold:** agregações semanais, integração entre as fontes e geração das tabelas utilizadas nas análises finais.
+As tabelas foram organizadas de acordo com sua função no pipeline:
 
-A estrutura implementada no catálogo foi:
+- **Raw:** preservação dos arquivos originais no Databricks Volume;
+- **Bronze:** persistência dos dados ingeridos, mantendo estrutura próxima à fonte;
+- **Silver:** limpeza, padronização, tipagem e reorganização dos dados;
+- **Gold:** agregações e integrações utilizadas diretamente nas análises.
+
+A estrutura implementada foi:
 
 ```text
 workspace
@@ -142,11 +144,9 @@ workspace
     └── ppi_semanal
 ```
 
-Essa organização possibilita acompanhar a evolução dos dados ao longo do pipeline e manter separadas as tabelas de ingestão, tratamento e análise.
-
 ### 3.2 Organização no Unity Catalog
 
-A organização das camadas implementadas no Databricks pode ser observada no Unity Catalog:
+As tabelas foram persistidas e organizadas no Unity Catalog conforme as camadas do pipeline.
 
 **Camada Bronze:**
 
@@ -156,27 +156,300 @@ A organização das camadas implementadas no Databricks pode ser observada no Un
 
 ![Camadas Raw, Silver e Gold no Unity Catalog](imagens/catalog_gold_silver_raw.png)
 
-### 3.3 Tabelas Silver
+Os domínios apresentados nas tabelas a seguir correspondem aos valores efetivamente observados nos dados utilizados neste MVP. Portanto, representam o intervalo ou conjunto de categorias encontrado nas bases processadas e não necessariamente todos os valores possíveis nas fontes originais.
 
-Na camada Silver foram consolidadas três tabelas principais:
+---
 
-- `workspace.silver.brent`: série histórica do Brent tratada e padronizada;
-- `workspace.silver.ppi`: consolidação dos dados de gasolina e diesel em uma estrutura única;
-- `workspace.silver.precos_anp`: preços ao consumidor tratados, com padronização dos campos utilizados na análise.
+### 3.3 Catálogo de Dados — Bronze
 
-No tratamento do PPI, os dados originalmente distribuídos em diferentes colunas por localidade foram reorganizados em formato longo, permitindo identificar explicitamente data, produto, localidade, preço e variação semanal.
+A camada Bronze mantém os dados próximos à estrutura em que foram recebidos, antes das principais transformações realizadas na Silver.
 
-Nos dados de preços ao consumidor, o valor de venda foi convertido para formato numérico e as duplicidades exatas da fonte foram removidas.
+#### `workspace.bronze.brent_raw`
 
-### 3.4 Tabelas Gold
+Série diária do preço spot do petróleo Brent proveniente da U.S. Energy Information Administration (EIA).
 
-A camada Gold concentra os dados preparados para as análises do projeto.
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `Date` | timestamp | Data da observação do preço do Brent. | 20/05/1987 a 09/09/2026 |
+| `Europe_Brent_Spot_Price_FOB_Dollars_per_Barrel` | double | Preço spot do Brent FOB Europa, em dólares por barril. | US$ 9,10 a US$ 143,95 |
 
-As séries foram agregadas em frequência semanal para permitir a comparação entre fontes com granularidades originalmente diferentes. Foram criadas tabelas semanais para Brent, PPI e preços ANP, além de uma base integrada.
+**Linhagem:** arquivo histórico da EIA → ingestão → `workspace.bronze.brent_raw`.
 
-Também foram persistidos os resultados das análises de correlação entre Brent e PPI e das correlações envolvendo os preços ao consumidor.
+---
 
-Essa modelagem permitiu analisar tanto movimentos simultâneos quanto possíveis efeitos com defasagem temporal entre as séries.
+#### `workspace.bronze.ppi_gasolina_raw` e `workspace.bronze.ppi_diesel_raw`
+
+As duas tabelas armazenam, respectivamente, as séries semanais de PPI de gasolina e diesel disponibilizadas pela ANP. As bases possuem a mesma estrutura e foram mantidas separadas na Bronze conforme a organização encontrada no arquivo de origem.
+
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `Data` | string | Período semanal de referência conforme representação existente no arquivo de origem. | Série temporal; alta cardinalidade |
+| `Manaus` | double | PPI correspondente à localidade de Manaus. | Gasolina: 0,6190–4,8948; Diesel: 1,1621–6,2886 |
+| `Itaqui` | double | PPI correspondente à localidade de Itaqui. | Gasolina: 0,6330–4,8924; Diesel: 1,2721–6,3580 |
+| `Suape` | double | PPI correspondente à localidade de Suape. | Gasolina: 0,6190–4,8884; Diesel: 1,2114–6,2682 |
+| `Aratu` | double | PPI correspondente à localidade de Aratu. | Gasolina: 0,6210–4,8956; Diesel: 1,2618–6,3480 |
+| `Santos` | double | PPI correspondente à localidade de Santos. | Gasolina: 0,6738–4,9008; Diesel: 1,3512–6,3582 |
+| `Paranagua` | double | PPI correspondente à localidade de Paranaguá. | Gasolina: 0,6614–4,8862; Diesel: 1,3412–6,3809 |
+| `Tramandai` | double | PPI correspondente à localidade de Tramandaí. | Gasolina: 0,6576–4,9134; Diesel: 1,3413–6,3661 |
+| `Guamare` | double | PPI correspondente à localidade de Guamaré. | Gasolina: 0,6753–5,0342; Diesel: 1,2892–6,4214 |
+| `Duque_de_Caxias` | double | PPI correspondente à localidade de Duque de Caxias. | Gasolina: 0,7392–5,0711; Diesel: 1,4419–6,5359 |
+| `Betim` | double | PPI correspondente à localidade de Betim. | Gasolina: 0,7463–5,0907; Diesel: 1,4519–6,5574 |
+| `Cubatao` | double | PPI correspondente à localidade de Cubatão. | Gasolina: 0,6824–4,9333; Diesel: 1,3654–6,3922 |
+| `Maua` | double | PPI correspondente à localidade de Mauá. | Gasolina: 0,6998–4,9497; Diesel: 1,3830–6,4097 |
+| `Paulinia` | double | PPI correspondente à localidade de Paulínia. | Gasolina: 0,7072–4,9898; Diesel: 1,3980–6,4551 |
+| `Sao_Jose_dos_Campos` | double | PPI correspondente à localidade de São José dos Campos. | Gasolina: 0,7050–4,9770; Diesel: 1,3933–6,4388 |
+| `Araucaria` | double | PPI correspondente à localidade de Araucária. | Gasolina: 0,6800–4,9424; Diesel: 1,3687–6,4403 |
+| `Canoas` | double | PPI correspondente à localidade de Canoas. | Gasolina: 0,6770–4,9694; Diesel: 1,3693–6,4266 |
+
+Cada uma das 16 localidades possui também um campo `<localidade>_variacao_pct`, do tipo `double`, correspondente à variação associada à localidade no arquivo de origem. Esses campos são:
+
+`Manaus_variacao_pct`, `Itaqui_variacao_pct`, `Suape_variacao_pct`, `Aratu_variacao_pct`, `Santos_variacao_pct`, `Paranagua_variacao_pct`, `Tramandai_variacao_pct`, `Guamare_variacao_pct`, `Duque_de_Caxias_variacao_pct`, `Betim_variacao_pct`, `Cubatao_variacao_pct`, `Maua_variacao_pct`, `Paulinia_variacao_pct`, `Sao_Jose_dos_Campos_variacao_pct`, `Araucaria_variacao_pct` e `Canoas_variacao_pct`.
+
+Nos dados utilizados, as variações armazenadas nesses campos ficaram aproximadamente entre **-0,3891 e 0,3926 para gasolina** e entre **-0,1366 e 0,3442 para diesel**.
+
+**Linhagem:** arquivo PPI da ANP → separação das estruturas de gasolina e diesel → padronização dos nomes das colunas → tabelas Bronze de cada produto.
+
+---
+
+#### `workspace.bronze.precos_anp_raw`
+
+Consolidação dos arquivos de preços ao consumidor da ANP, acrescida de metadados de rastreabilidade.
+
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `Regiao_Sigla` | string | Região brasileira da coleta. | CO, N, NE, S, SE |
+| `Estado_Sigla` | string | UF da coleta. | 27 UFs |
+| `Municipio` | string | Município da revenda. | Alta cardinalidade |
+| `Revenda` | string | Nome da revenda pesquisada. | Alta cardinalidade |
+| `CNPJ_da_Revenda` | string | CNPJ da revenda. | Alta cardinalidade |
+| `Nome_da_Rua` | string | Logradouro da revenda. | Alta cardinalidade |
+| `Numero_Rua` | string | Número do endereço da revenda. | Alta cardinalidade |
+| `Complemento` | string | Complemento do endereço. | Alta cardinalidade |
+| `Bairro` | string | Bairro da revenda. | Alta cardinalidade |
+| `Cep` | string | CEP da revenda. | Alta cardinalidade |
+| `Produto` | string | Combustível pesquisado. | DIESEL, DIESEL S10, ETANOL, GASOLINA, GASOLINA ADITIVADA, GNV |
+| `Data_da_Coleta` | date | Data em que o preço foi coletado. | 01/01/2025 a 31/08/2026 |
+| `Valor_de_Venda` | string | Valor de venda conforme recebido na ingestão. | Alta cardinalidade |
+| `Valor_de_Compra` | string | Valor de compra presente na estrutura da fonte. | Sem valores preenchidos observados |
+| `Unidade_de_Medida` | string | Unidade utilizada para o preço. | R$ / litro, R$ / m³ |
+| `Bandeira` | string | Bandeira da revenda. | Alta cardinalidade |
+| `arquivo_origem` | string | Arquivo a partir do qual o registro foi ingerido. | Alta cardinalidade |
+| `data_ingestao` | timestamp | Data e hora da execução da ingestão. | Timestamp da carga |
+| `fonte` | string | Identificação da fonte dos dados. | ANP |
+
+**Linhagem:** arquivos mensais da ANP → consolidação dos arquivos → inclusão de `arquivo_origem`, `data_ingestao` e `fonte` → `workspace.bronze.precos_anp_raw`.
+
+---
+
+### 3.4 Catálogo de Dados — Silver
+
+A camada Silver contém os dados tratados e padronizados. Nessa etapa foram realizadas conversões de tipos, reorganização de estruturas e tratamento de duplicidades.
+
+#### `workspace.silver.brent`
+
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `data` | date | Data da observação do Brent, convertida para tipo `date`. | 20/05/1987 a 09/09/2026 |
+| `preco_brent_usd` | double | Preço do Brent em dólares por barril. | 9,10 a 143,95 |
+
+**Linhagem:** derivada de `workspace.bronze.brent_raw`, com padronização dos nomes e conversão da data.
+
+---
+
+#### `workspace.silver.ppi`
+
+A estrutura larga das tabelas Bronze, em que cada localidade correspondia a uma coluna, foi transformada em formato longo. Gasolina e diesel passaram a compor uma única tabela.
+
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `data_inicio` | date | Data inicial da semana de referência. | 05/11/2018 a 31/08/2026 |
+| `data_fim` | date | Data final da semana de referência. | 09/11/2018 a 04/09/2026 |
+| `localidade` | string | Localidade de referência do PPI. | 16 localidades |
+| `preco` | double | Valor do PPI para produto, período e localidade. | 0,6190 a 6,5574 |
+| `variacao_semanal` | double | Variação semanal conforme estrutura tratada da fonte. | -0,3891 a 0,3926 |
+| `produto` | string | Produto ao qual o PPI se refere. | DIESEL, GASOLINA |
+| `variacao_semanal_pct` | double | Variação semanal expressa em percentual. | -38,91% a 39,26% |
+
+As localidades observadas são: Aratu, Araucária, Betim, Canoas, Cubatão, Duque de Caxias, Guamaré, Itaqui, Manaus, Mauá, Paranaguá, Paulínia, Santos, São José dos Campos, Suape e Tramandaí.
+
+**Linhagem:** `workspace.bronze.ppi_gasolina_raw` + `workspace.bronze.ppi_diesel_raw` → transformação da estrutura larga para longa → separação do período em datas inicial e final → identificação do produto → consolidação em `workspace.silver.ppi`.
+
+---
+
+#### `workspace.silver.precos_anp`
+
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `data_coleta` | date | Data da coleta do preço. | 01/01/2025 a 31/08/2026 |
+| `regiao` | string | Região brasileira. | CO, N, NE, S, SE |
+| `uf` | string | Unidade da Federação. | 27 UFs |
+| `municipio` | string | Município da coleta. | Alta cardinalidade |
+| `produto` | string | Combustível pesquisado. | DIESEL, DIESEL S10, ETANOL, GASOLINA, GASOLINA ADITIVADA, GNV |
+| `valor_venda` | double | Preço de venda convertido para valor numérico. | R$ 2,77 a R$ 9,99 |
+| `unidade_medida` | string | Unidade do preço. | R$ / litro, R$ / m³ |
+| `bandeira` | string | Bandeira da revenda. | Alta cardinalidade |
+| `cnpj_revenda` | string | CNPJ da revenda. | Alta cardinalidade |
+| `revenda` | string | Nome da revenda. | Alta cardinalidade |
+| `arquivo_origem` | string | Arquivo de origem do registro. | Alta cardinalidade |
+| `data_ingestao` | timestamp | Timestamp da ingestão. | Timestamp da carga |
+| `fonte` | string | Fonte dos dados. | ANP |
+
+**Linhagem:** `workspace.bronze.precos_anp_raw` → seleção e padronização dos campos → conversão de `Valor_de_Venda` de texto para número → remoção das duplicidades exatas identificadas → `workspace.silver.precos_anp`.
+
+---
+
+### 3.5 Catálogo de Dados — Gold
+
+A camada Gold contém as tabelas preparadas especificamente para responder às perguntas do projeto. As séries foram levadas para granularidade semanal para permitir a comparação entre fontes.
+
+#### `workspace.gold.brent_semanal`
+
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `semana` | date | Início da semana de referência. | 18/05/1987 a 07/09/2026 |
+| `brent_medio_usd` | double | Preço médio do Brent na semana. | 9,44 a 141,065 |
+| `brent_min_usd` | double | Menor preço diário do Brent na semana. | 9,10 a 138,40 |
+| `brent_max_usd` | double | Maior preço diário do Brent na semana. | 9,70 a 143,95 |
+| `dias_observados` | bigint | Número de dias com observações na semana. | 2 a 5 |
+
+**Linhagem:** `workspace.silver.brent` → agrupamento semanal → cálculo de média, mínimo, máximo e quantidade de dias observados.
+
+---
+
+#### `workspace.gold.ppi_semanal`
+
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `data_inicio` | date | Início da semana de referência do PPI. | 05/11/2018 a 31/08/2026 |
+| `data_fim` | date | Fim da semana de referência. | 09/11/2018 a 04/09/2026 |
+| `produto` | string | Produto analisado. | DIESEL, GASOLINA |
+| `ppi_medio` | double | PPI médio entre as localidades na semana. | 0,6748 a 6,4007 |
+| `ppi_min` | double | Menor PPI entre as localidades na semana. | 0,6190 a 6,2544 |
+| `ppi_max` | double | Maior PPI entre as localidades na semana. | 0,7463 a 6,5574 |
+| `localidades_observadas` | bigint | Quantidade de localidades presentes no período. | 5 a 16 |
+
+**Linhagem:** `workspace.silver.ppi` → agrupamento por período e produto → agregação dos valores observados nas localidades.
+
+---
+
+#### `workspace.gold.anp_semanal`
+
+Para a análise final foram selecionados Gasolina e Diesel S10. Na integração, Diesel S10 é associado ao combustível Diesel das séries de PPI.
+
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `semana` | date | Início da semana de referência. | 30/12/2024 a 31/08/2026 |
+| `produto` | string | Produto observado na base ANP. | DIESEL S10, GASOLINA |
+| `preco_medio_anp` | double | Preço médio ao consumidor na semana. | 6,0855 a 7,5837 |
+| `preco_min_anp` | double | Menor preço observado na semana. | 4,73 a 6,15 |
+| `preco_max_anp` | double | Maior preço observado na semana. | 7,99 a 9,99 |
+| `observacoes` | bigint | Quantidade de registros de preços utilizados na agregação semanal. | 852 a 4.472 |
+| `ufs_observadas` | bigint | Quantidade de UFs representadas na semana. | 24 a 27 |
+
+**Linhagem:** `workspace.silver.precos_anp` → seleção de Gasolina e Diesel S10 → agrupamento semanal e por produto → cálculo das estatísticas de preço e cobertura.
+
+---
+
+#### `workspace.gold.base_integrada`
+
+Base analítica que reúne, por semana e combustível, os indicadores de preços ao consumidor, PPI e Brent.
+
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `semana` | date | Semana utilizada para integração das séries. | 30/12/2024 a 31/08/2026 |
+| `combustivel` | string | Combustível utilizado na integração. | DIESEL, GASOLINA |
+| `preco_medio_anp` | double | Preço médio semanal ao consumidor. | 6,0855 a 7,5837 |
+| `preco_min_anp` | double | Menor preço ao consumidor na semana. | 4,73 a 6,15 |
+| `preco_max_anp` | double | Maior preço ao consumidor na semana. | 7,99 a 9,99 |
+| `observacoes` | bigint | Quantidade de observações ANP na semana. | 852 a 4.472 |
+| `ufs_observadas` | bigint | Quantidade de UFs observadas. | 24 a 27 |
+| `ppi_medio` | double | PPI médio semanal. | 2,2646 a 6,4007 |
+| `ppi_min` | double | Menor PPI semanal. | 2,1841 a 6,2544 |
+| `ppi_max` | double | Maior PPI semanal. | 2,4198 a 6,5574 |
+| `localidades_observadas` | bigint | Quantidade de localidades do PPI utilizadas. | 16 |
+| `brent_medio_usd` | double | Preço médio semanal do Brent. | US$ 60,826 a US$ 124,605 |
+| `brent_min_usd` | double | Menor preço do Brent na semana. | US$ 59,93 a US$ 119,56 |
+| `brent_max_usd` | double | Maior preço do Brent na semana. | US$ 61,55 a US$ 138,21 |
+| `dias_observados` | bigint | Quantidade de dias com cotação do Brent na semana. | 3 a 5 |
+
+**Linhagem:** integração de `workspace.gold.anp_semanal`, `workspace.gold.ppi_semanal` e `workspace.gold.brent_semanal` pela referência temporal, harmonizando a identificação dos combustíveis para permitir a comparação das três séries.
+
+---
+
+#### `workspace.gold.correlacao_brent_ppi`
+
+Resultados das correlações entre Brent e PPI considerando diferentes defasagens semanais.
+
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `combustivel` | string | Combustível analisado. | DIESEL, GASOLINA |
+| `relacao` | string | Relação entre as séries e janela utilizada. | Brent → PPI \| 2018–2026 |
+| `lag_semanas` | bigint | Defasagem aplicada entre as séries. | 0 a 4 semanas |
+| `correlacao` | double | Coeficiente de correlação calculado. | -0,0564 a 0,6904 |
+| `n` | bigint | Número de pares de observações utilizados no cálculo. | 402 a 408 |
+
+**Linhagem:** séries semanais de Brent e PPI → alinhamento temporal → aplicação de defasagens de 0 a 4 semanas → cálculo das correlações.
+
+---
+
+#### `workspace.gold.correlacoes_anp`
+
+Resultados das correlações envolvendo os preços ao consumidor na janela temporal comum às séries.
+
+| Campo | Tipo | Descrição | Domínio observado |
+|---|---|---|---|
+| `combustivel` | string | Combustível analisado. | DIESEL, GASOLINA |
+| `relacao` | string | Relação entre as séries analisadas. | Brent → ANP \| janela comum; PPI → ANP \| janela comum |
+| `lag_semanas` | bigint | Defasagem aplicada entre as séries. | 0 a 4 semanas |
+| `correlacao` | double | Coeficiente de correlação calculado. | -0,0705 a 0,6555 |
+| `n` | bigint | Número de pares de observações utilizados no cálculo. | 83 a 87 |
+
+**Linhagem:** séries semanais integradas → seleção da janela temporal comum → aplicação de defasagens de 0 a 4 semanas → cálculo das correlações envolvendo os preços ao consumidor.
+
+### 3.6 Resumo da linhagem
+
+De forma simplificada, a linhagem principal do pipeline é:
+
+```text
+EIA Brent
+   │
+   ▼
+bronze.brent_raw
+   │
+   ▼
+silver.brent
+   │
+   ▼
+gold.brent_semanal ───────────────┐
+                                  │
+ANP PPI                           │
+   │                              │
+   ├─► bronze.ppi_gasolina_raw    │
+   └─► bronze.ppi_diesel_raw      │
+              │                   │
+              ▼                   │
+          silver.ppi              │
+              │                   │
+              ▼                   │
+       gold.ppi_semanal ──────────┼─► gold.base_integrada
+              │                   │
+              └─► gold.correlacao_brent_ppi
+                                  │
+ANP Preços                        │
+   │                              │
+   ▼                              │
+bronze.precos_anp_raw             │
+   │                              │
+   ▼                              │
+silver.precos_anp                 │
+   │                              │
+   ▼                              │
+gold.anp_semanal ─────────────────┘
+   │
+   └───────────────────────────────► gold.correlacoes_anp
+```
+
+A separação entre as camadas permite preservar os dados de origem, aplicar transformações de forma rastreável e disponibilizar estruturas específicas para as análises finais.
 
 
 ## 4. Pipeline de Dados
