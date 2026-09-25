@@ -658,7 +658,7 @@ Como aprendizado, o projeto reforçou a importância de definir claramente a gra
 ## 9. Estrutura do Repositório
 
 ```text
-mvp_engenharia_dados/
+mvp-engenharia-dados-combustiveis/
 │
 ├── README.md
 ├── notebooks/
