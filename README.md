@@ -29,6 +29,8 @@ O dia 28 de fevereiro de 2026 foi utilizado como referência para comparar o com
 7. Houve alteração relevante no volume comercializado de gasolina, diesel e etanol após o choque?
 8. O etanol apresentou comportamento diferente dos combustíveis mais diretamente relacionados ao petróleo durante o período?
 
+As seis primeiras perguntas foram investigadas nesta versão do MVP. As questões relacionadas ao volume comercializado e ao etanol foram mantidas conforme o escopo originalmente proposto, mas não foram respondidas nesta versão e são retomadas na seção de limitações e trabalhos futuros.
+
 ### Referências do contexto
 - [ONU - pronunciamento do Secretário-Geral ao Conselho de Segurança em 28/02/2026](https://www.un.org/sg/en/content/sg/statements/2026-02-28/secretary-generals-remarks-the-security-council-meeting-the-situation-the-middle-east-delivered)
 - [EIA - análise dos preços do petróleo no primeiro trimestre de 2026](https://www.eia.gov/todayinenergy/detail.php?id=67424)
